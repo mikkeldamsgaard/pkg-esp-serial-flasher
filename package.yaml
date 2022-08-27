@@ -1,0 +1,8 @@
+name: esp_serial_flasher
+dependencies:
+  packing:
+    url: github.com/mikkeldamsgaard/pkg-binary-packing
+    version: ^1.0.0
+  slip:
+    url: github.com/mikkeldamsgaard/pkg-slip
+    version: ^1.0.1
