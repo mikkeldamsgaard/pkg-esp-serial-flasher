@@ -23,10 +23,11 @@ abstract class ChipConfig:
   miso_dlen/int
   efuse_base/int
   chip_magic_numbers/Set
+  supports_encryption/bool
 
   abstract read_spi_config protocol/Protocol -> int
 
-  constructor --.chip_type --.name --.cmd --.usr --.usr1 --.usr2 --.w0 --.mosi_dlen --.miso_dlen --.efuse_base --.chip_magic_numbers:
+  constructor --.chip_type --.name --.cmd --.usr --.usr1 --.usr2 --.w0 --.mosi_dlen --.miso_dlen --.efuse_base --.chip_magic_numbers --.supports_encryption:
 
 class ESP8622Config extends ChipConfig:
   constructor:
@@ -41,7 +42,8 @@ class ESP8622Config extends ChipConfig:
         --miso_dlen  = 0
         --mosi_dlen  = 0
         --efuse_base = 0 // Not used
-        --chip_magic_numbers={ 0xfff0c101, 0 }
+        --chip_magic_numbers = { 0xfff0c101, 0 }
+        --supports_encryption = false
 
   read_spi_config protocol/Protocol -> int: // not used
     return 0
@@ -63,6 +65,7 @@ class ESP32Config extends ChipConfig:
         --miso_dlen  = ESP32_SPI_REG_BASE_ + 0x2c
         --efuse_base = 0x3ff5A000
         --chip_magic_numbers = { 0x00f01d83, 0 }
+        --supports_encryption = false
 
   read_spi_config protocol/Protocol -> int:
     reg5 := protocol.read_register efuse_base + 4*5
@@ -84,7 +87,7 @@ class ESP32Config extends ChipConfig:
 
 
 abstract class ESP32XXConfig extends ChipConfig:
-  constructor --name --efuse_base --chip_magic_numbers --reg_base/int=ESP32xx_SPI_REG_BASE_:
+  constructor --name --efuse_base --chip_magic_numbers --reg_base/int=ESP32xx_SPI_REG_BASE_ --supports_encryption/bool:
     super
         --chip_type  = CHIP_TYPE_ESP32_
         --name       = name
@@ -97,6 +100,7 @@ abstract class ESP32XXConfig extends ChipConfig:
         --miso_dlen  = reg_base + 0x28
         --efuse_base = efuse_base
         --chip_magic_numbers = chip_magic_numbers
+        --supports_encryption = supports_encryption
 
   read_spi_config protocol/Protocol -> int:
     reg1 := protocol.read_register efuse_base + 4 * 18
@@ -113,6 +117,7 @@ class ESP32C2Config extends ESP32XXConfig:
       --name      = "ESP32C2"
       --efuse_base = 0x60008800
       --chip_magic_numbers = { 0x6f51306f, 0 }
+      --supports_encryption = false
 
 class ESP32C3Config extends ESP32XXConfig:
   constructor:
@@ -120,6 +125,7 @@ class ESP32C3Config extends ESP32XXConfig:
       --name      = "ESP32C3"
       --efuse_base = 0x60008800
       --chip_magic_numbers = { 0x6921506f, 0x1b31506f }
+      --supports_encryption = true
 
 class ESP32S2Config extends ESP32XXConfig:
   constructor:
@@ -128,6 +134,7 @@ class ESP32S2Config extends ESP32XXConfig:
       --efuse_base = 0x3f41A000
       --chip_magic_numbers = { 0x000007c6, 0 }
       --reg_base = ESP32S2_SPI_REG_BASE_
+      --supports_encryption = true
 
 class ESP32S3Config extends ESP32XXConfig:
   constructor:
@@ -135,6 +142,7 @@ class ESP32S3Config extends ESP32XXConfig:
       --name      = "ESP32S3"
       --efuse_base = 0x60007000
       --chip_magic_numbers = { 0x00000009, 0 }
+      --supports_encryption = true
 
 
 class ESP32H2Config extends ESP32XXConfig:
@@ -143,6 +151,7 @@ class ESP32H2Config extends ESP32XXConfig:
       --name      = "ESP32H2"
       --efuse_base = 0x6001A000
       --chip_magic_numbers = { 0xca26cc22, 0x6881b06f }
+      --supports_encryption = true
 
 
 CHIP_CONFIGS_ ::= [

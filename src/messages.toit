@@ -119,14 +119,14 @@ class ChangeBaudrateCommand extends Command:
 
 class FlashBeginCommand extends Command:    
   payload/ByteArray
-  constructor offset/int erase_size/int block_size/int blocks_to_write/int include_encryption/bool:
+  constructor offset/int erase_size/int block_size/int blocks_to_write/int include_encryption/bool?:
     buf := PackingBuffer.le --initial_size=20
     buf.write_uint32 erase_size
     buf.write_uint32 blocks_to_write
     buf.write_uint32 block_size
     buf.write_uint32 offset
-    if include_encryption:
-      buf.write_uint32 0
+    if include_encryption != null:
+      buf.write_uint32 (include_encryption?1:0)
     payload = buf.bytes
     super COMMAND_FLASH_BEGIN
 
@@ -170,6 +170,7 @@ class StatusResponse extends Response:
   error/int? := null
 
   constructor arr/ByteArray:
+    if arr.size < 10: throw "Invalid response: $(hex.encode arr)"
     super arr
     failed = buf_.read_uint8
     error = buf_.read_uint8

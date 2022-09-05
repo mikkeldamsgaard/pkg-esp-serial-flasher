@@ -51,10 +51,11 @@ class Protocol:
     send_cmd_ cmd
     check_status_response_ cmd
 
-  begin_flash offset/int erase_size/int block_size/int blocks_to_write/int include_encryption/bool:
+  begin_flash offset/int erase_size/int block_size/int blocks_to_write/int include_encryption/bool?:
     cmd := FlashBeginCommand offset erase_size block_size blocks_to_write include_encryption
     send_cmd_ cmd
-    check_status_response_ cmd --timeout_ms=(bytes_to_timeout_ erase_size ERASE_TIMEOUT_PER_MB_)
+    timeout := bytes_to_timeout_ erase_size ERASE_TIMEOUT_PER_MB_
+    check_status_response_ cmd --timeout_ms=timeout
 
   write_flash buf/ByteArray sequence/int:
     cmd := FlashWriteCommand buf sequence
@@ -129,14 +130,14 @@ class Protocol:
     slip.close
 
   bytes_to_timeout_ size/int timeout_per_mb/int:
-    timeout := size / 1_000_000 * timeout_per_mb
+    timeout := size * timeout_per_mb / 1_000_000  + 750
     return max timeout MINIMUM_COMMAND_TIMEOUT_
 
   send_cmd_ cmd/Command:
     slip_payload := cmd.bytes
     slip.send slip_payload
-    trace_ "COMMAND: cmd_id=$(%x cmd.command) size=$cmd.size $(hex.encode cmd.payload)"
-
+    trace_ "COMMAND: cmd_id=$(%x cmd.command) size=$cmd.size $(cmd.payload.size>50?"<bin>":(hex.encode cmd.payload))"
+    trace_ "SLIP PAYLOAD: $(hex.encode slip_payload)"
   check_status_response_ command/Command --timeout_ms=500 -> int:
     return check_status_response_with_command_id_ command.command --timeout_ms=timeout_ms
 

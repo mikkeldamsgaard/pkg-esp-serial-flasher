@@ -35,8 +35,11 @@ class Flasher:
         retry_ trials:
           if print_progress: write_on_stdout_ "." false
           protocol.sync
-    finally:
+    finally: | is_exception e |
       if print_progress: write_on_stdout_ "" true
+      if is_exception:
+        protocol.close
+        protocol = null
 
     chip := detect_chip_
 
@@ -44,7 +47,7 @@ class Flasher:
       spi_config := chip.read_spi_config protocol
       protocol.spi_attach spi_config
     else:
-      protocol.begin_flash 0 0 0 0 false
+      protocol.begin_flash 0 0 0 0 null
 
     return
         Target this chip protocol
@@ -97,7 +100,7 @@ class Target:
       else:
         flash_size_ = flash_size
 
-    return ImageFlasher  offset image_size block_size flash_size_ protocol
+    return ImageFlasher offset image_size block_size flash_size_ protocol chip
 
 
 class ImageFlasher:
@@ -105,14 +108,15 @@ class ImageFlasher:
   protocol/Protocol
   sequence/int := 0
 
-  constructor offset/int image_size/int .block_size/int flash_size/int .protocol/Protocol:
+  constructor offset/int image_size/int .block_size/int flash_size/int .protocol/Protocol chip/ChipConfig:
     blocks_to_write := (image_size + block_size - 1) / block_size
-    erase_size := block_size * blocks_to_write
 
     protocol.set_spi_parameters flash_size
 
+    encryption := chip.supports_encryption?false:null
+
     retry_ 5:
-      protocol.begin_flash offset erase_size block_size blocks_to_write false
+      protocol.begin_flash offset image_size block_size blocks_to_write encryption
 
   write buf/ByteArray:
     if buf.size > block_size: throw "Invalid buffer. Size ($buf.size) exceeds block size $block_size"
@@ -135,7 +139,7 @@ class ImageFlasher:
 
 retry_ trials --pause_between_retries_ms=100 [block]:
   while trials-- > 0:
-    e := catch:
+    e := catch --unwind=(: trials == 0 ):
       block.call
 
     if not e: return
