@@ -39,8 +39,8 @@ class Protocol:
     send_cmd_ cmd
     return check_status_response_ cmd
 
-  change_baud_rate baud_rate/int:
-    cmd/Command := ChangeBaudrateCommand baud_rate
+  change_baud_rate baud_rate/int old_baud_rate:
+    cmd/Command := ChangeBaudrateCommand baud_rate old_baud_rate
     send_cmd_ cmd
     check_status_response_ cmd
 
@@ -84,7 +84,7 @@ class Protocol:
     old_usr2 := read_register chip.usr2
 
     try:
-      if chip.chip_type == CHIP_TYPE_ESP8622_:
+      if chip.chip_type == CHIP_TYPE_ESP8266_:
         spi_set_data_lengths_8266_ chip tx_size rx_size
       else:
         spi_set_data_lengths_ chip tx_size rx_size
@@ -125,6 +125,26 @@ class Protocol:
       write_register chip.usr2 old_usr2
 
 
+  begin_mem offset/int blocks_to_write/int block_size/int size/int:
+    cmd := MemBeginCommand offset blocks_to_write block_size size
+    send_cmd_ cmd
+    check_status_response_ cmd
+
+  write_mem data/ByteArray seq/int:
+    cmd := MemWriteCommand data seq
+    send_cmd_ cmd
+    check_status_response_ cmd
+
+  end_mem entry/int:
+    cmd := MemCompleteCommand entry
+    send_cmd_ cmd
+    catch:
+      // Sending ESP_MEM_END usually sends a correct response back, however sometimes
+      // (with ROM loader) the executed code may reset the UART or change the baud rate
+      // before the transmit FIFO is empty. So in these cases we set a short timeout
+      // and ignore errors.
+      check_status_response_ cmd --timeout_ms=50
+
 
   close:
     slip.close
@@ -138,7 +158,7 @@ class Protocol:
     slip.send slip_payload
     trace_ "COMMAND: cmd_id=$(%x cmd.command) size=$cmd.size $(cmd.payload.size>50?"<bin>":(hex.encode cmd.payload))"
     trace_ "SLIP PAYLOAD: $(hex.encode slip_payload)"
-  check_status_response_ command/Command --timeout_ms=500 -> int:
+  check_status_response_ command/Command --timeout_ms=3000 -> int:
     return check_status_response_with_command_id_ command.command --timeout_ms=timeout_ms
 
   check_status_response_with_command_id_ command/int --timeout_ms=500 -> int:

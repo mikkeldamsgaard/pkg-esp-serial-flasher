@@ -8,7 +8,7 @@ ESP32S2_SPI_REG_BASE_ ::=  0x3f402000
 ESP32xx_SPI_REG_BASE_ ::=  0x60002000
 ESP32_SPI_REG_BASE_   ::=  0x3ff42000
 
-CHIP_TYPE_ESP8622_ ::= 0
+CHIP_TYPE_ESP8266_ ::= 0
 CHIP_TYPE_ESP32_   ::= 1
 
 abstract class ChipConfig:
@@ -24,16 +24,19 @@ abstract class ChipConfig:
   efuse_base/int
   chip_magic_numbers/Set
   supports_encryption/bool
+  ram_block_size/int
 
   abstract read_spi_config protocol/Protocol -> int
 
-  constructor --.chip_type --.name --.cmd --.usr --.usr1 --.usr2 --.w0 --.mosi_dlen --.miso_dlen --.efuse_base --.chip_magic_numbers --.supports_encryption:
+  constructor --.chip_type --.name --.cmd --.usr --.usr1 --.usr2 --.w0 \
+              --.mosi_dlen --.miso_dlen --.efuse_base --.chip_magic_numbers \
+              --.supports_encryption --.ram_block_size=0x1000:
 
-class ESP8622Config extends ChipConfig:
+class ESP8266Config extends ChipConfig:
   constructor:
     super
-        --chip_type  = CHIP_TYPE_ESP8622_
-        --name       = "ESP8622"
+        --chip_type  = CHIP_TYPE_ESP8266_
+        --name       = "ESP8266"
         --cmd        = ESP8266_SPI_REG_BASE_ + 0x00
         --usr        = ESP8266_SPI_REG_BASE_ + 0x1c
         --usr1       = ESP8266_SPI_REG_BASE_ + 0x20
@@ -155,7 +158,7 @@ class ESP32H2Config extends ESP32XXConfig:
 
 
 CHIP_CONFIGS_ ::= [
-  ESP8622Config,
+  ESP8266Config,
   ESP32Config,
   ESP32C2Config,
   ESP32C3Config,

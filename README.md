@@ -2,6 +2,7 @@
 
 This package implements (parts of) the [esp serial flasher protocol](https://docs.espressif.com/projects/esptool/en/latest/esp32/advanced-topics/serial-protocol.html)
 
+
 For simple usage from an ESP32 host, to flash another ESP32 host:
 
 ```toit

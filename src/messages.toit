@@ -110,10 +110,10 @@ class SpiSetParameters extends Command:
 
 class ChangeBaudrateCommand extends Command:
   payload/ByteArray
-  constructor baud_rate/int:
+  constructor baud_rate/int old_baud_rate/int:
     buf := PackingBuffer.le --initial_size=8
     buf.write_uint32 baud_rate
-    buf.write_uint32 0
+    buf.write_uint32 old_baud_rate
     payload = buf.bytes
     super COMMAND_CHANGE_BAUDRATE
 
@@ -147,6 +147,39 @@ class FlashCompleteCommand extends Command:
   payload ::= #[0x01]
   constructor:
     super COMMAND_FLASH_END
+
+class MemBeginCommand extends Command:
+  payload/ByteArray
+  constructor offset/int blocks_to_write/int block_size/int size/int:
+    buf := PackingBuffer.le --initial_size=20
+    buf.write_uint32 size
+    buf.write_uint32 blocks_to_write
+    buf.write_uint32 block_size
+    buf.write_uint32 offset
+    payload = buf.bytes
+    super COMMAND_MEM_BEGIN
+
+class MemWriteCommand extends Command:
+  payload/ByteArray
+  constructor data/ByteArray sequence/int:
+    buf := PackingBuffer.le --initial_size=data.size + 16
+    buf.write_uint32 data.size
+    buf.write_uint32 sequence
+    buf.write_uint32 0
+    buf.write_uint32 0
+    buf.write_byte_array data
+    payload = buf.bytes
+    check_sum := calc_check_sum_ data
+    super COMMAND_MEM_DATA check_sum
+
+class MemCompleteCommand extends Command:
+  payload/ByteArray
+  constructor entry/int:
+    buf := PackingBuffer.le --initial_size=8
+    buf.write_uint32 (entry==0?1:0)
+    buf.write_uint32 entry
+    payload = buf.bytes
+    super COMMAND_MEM_END
 
 ////
 ////
