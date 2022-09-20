@@ -5,8 +5,10 @@ import slip show Slip
 import .messages
 import .config
 
-ERASE_TIMEOUT_PER_MB_    ::= 10000
+ERASE_TIMEOUT_PER_MB_    ::= 30000
+MD5_TIMEROUT_PER_MB_     ::= 8000
 MINIMUM_COMMAND_TIMEOUT_ ::= 50
+DAFULT_TIMEOUT           ::= 3000
 
 SPI_USR_CMD_   ::= 1 << 31
 SPI_USR_MISO_  ::= 1 << 28
@@ -53,6 +55,7 @@ class Protocol:
 
   begin_flash offset/int erase_size/int block_size/int blocks_to_write/int include_encryption/bool?:
     cmd := FlashBeginCommand offset erase_size block_size blocks_to_write include_encryption
+    trace_ "FlashBeginCommand offset=$offset erase_size=$erase_size block_size=$block_size blocks_to_write=$blocks_to_write include_encryption=$include_encryption"
     send_cmd_ cmd
     timeout := bytes_to_timeout_ erase_size ERASE_TIMEOUT_PER_MB_
     check_status_response_ cmd --timeout_ms=timeout
@@ -60,7 +63,20 @@ class Protocol:
   write_flash buf/ByteArray sequence/int:
     cmd := FlashWriteCommand buf sequence
     send_cmd_ cmd
-    check_status_response_ cmd --timeout_ms=300
+    check_status_response_ cmd
+
+  end_flash:
+    cmd := FlashCompleteCommand
+    send_cmd_ cmd
+    check_status_response_ cmd
+
+  calculate_md5 addr/int size/int -> ByteArray:
+    cmd := Md5SpiCommand addr size
+    send_cmd_ cmd
+    timeout := bytes_to_timeout_ size MD5_TIMEROUT_PER_MB_
+    response_bytes := read_next_message_ timeout
+    print "MD5: $(hex.encode response_bytes) : $response_bytes.size"
+    return response_bytes
 
   spi_set_data_lengths_ chip/ChipConfig mosi_bits/int miso_bits/int:
     if mosi_bits>0: write_register chip.mosi_dlen mosi_bits-1
@@ -150,15 +166,16 @@ class Protocol:
     slip.close
 
   bytes_to_timeout_ size/int timeout_per_mb/int:
-    timeout := size * timeout_per_mb / 1_000_000  + 750
-    return max timeout MINIMUM_COMMAND_TIMEOUT_
+    timeout := size * timeout_per_mb / 1_000_000
+    return max timeout DAFULT_TIMEOUT
 
   send_cmd_ cmd/Command:
     slip_payload := cmd.bytes
     slip.send slip_payload
     trace_ "COMMAND: cmd_id=$(%x cmd.command) size=$cmd.size $(cmd.payload.size>50?"<bin>":(hex.encode cmd.payload))"
-    trace_ "SLIP PAYLOAD: $(hex.encode slip_payload)"
-  check_status_response_ command/Command --timeout_ms=3000 -> int:
+    trace_ "SLIP PAYLOAD (TX): $(hex.encode slip_payload)"
+
+  check_status_response_ command/Command --timeout_ms=DAFULT_TIMEOUT -> int:
     return check_status_response_with_command_id_ command.command --timeout_ms=timeout_ms
 
   check_status_response_with_command_id_ command/int --timeout_ms=500 -> int:
@@ -179,6 +196,7 @@ class Protocol:
   read_next_message_ timeout_ms/int -> ByteArray:
     with_timeout --ms=timeout_ms:
       msg := slip.receive
+      trace_ "SLIP PAYLOAD (RX): $(hex.encode msg)"
       return msg
     unreachable
 

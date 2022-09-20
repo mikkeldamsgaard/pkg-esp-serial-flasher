@@ -144,7 +144,7 @@ class FlashWriteCommand extends Command:
     super COMMAND_FLASH_DATA check_sum
 
 class FlashCompleteCommand extends Command:
-  payload ::= #[0x01]
+  payload ::= #[0x00]
   constructor:
     super COMMAND_FLASH_END
 
@@ -180,6 +180,17 @@ class MemCompleteCommand extends Command:
     buf.write_uint32 entry
     payload = buf.bytes
     super COMMAND_MEM_END
+
+class Md5SpiCommand extends Command:
+  payload/ByteArray
+  constructor addr/int size/int:
+    buf := PackingBuffer.le --initial_size=8
+    buf.write_uint32 addr
+    buf.write_uint32 size
+    buf.write_uint32 0
+    buf.write_uint32 0
+    payload = buf.bytes
+    super COMMAND_SPI_FLASH_MD5
 
 ////
 ////

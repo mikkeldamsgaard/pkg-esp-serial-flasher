@@ -30,7 +30,7 @@ abstract class ChipConfig:
 
   constructor --.chip_type --.name --.cmd --.usr --.usr1 --.usr2 --.w0 \
               --.mosi_dlen --.miso_dlen --.efuse_base --.chip_magic_numbers \
-              --.supports_encryption --.ram_block_size=0x1000:
+              --.supports_encryption --.ram_block_size=0x1800:
 
 class ESP8266Config extends ChipConfig:
   constructor:
@@ -90,7 +90,8 @@ class ESP32Config extends ChipConfig:
 
 
 abstract class ESP32XXConfig extends ChipConfig:
-  constructor --name --efuse_base --chip_magic_numbers --reg_base/int=ESP32xx_SPI_REG_BASE_ --supports_encryption/bool:
+  constructor --name --efuse_base --chip_magic_numbers
+              --reg_base/int=ESP32xx_SPI_REG_BASE_ --supports_encryption/bool:
     super
         --chip_type  = CHIP_TYPE_ESP32_
         --name       = name
@@ -146,6 +147,7 @@ class ESP32S3Config extends ESP32XXConfig:
       --efuse_base = 0x60007000
       --chip_magic_numbers = { 0x00000009, 0 }
       --supports_encryption = true
+
 
 
 class ESP32H2Config extends ESP32XXConfig:

@@ -119,23 +119,29 @@ class Target:
       else:
         flash_size_ = flash_size
 
-    return ImageFlasher offset image_size block_size flash_size_ protocol chip
+    return ImageFlasher offset image_size block_size flash_size_ protocol chip stub
 
 
 class ImageFlasher:
   block_size/int
   protocol/Protocol
   sequence/int := 0
+  stub/Stub?
+  chip/ChipConfig
+  offset/int
+  image_size/int
 
-  constructor offset/int image_size/int .block_size/int flash_size/int .protocol/Protocol chip/ChipConfig:
+
+  constructor .offset/int .image_size/int .block_size/int flash_size/int .protocol/Protocol .chip/ChipConfig .stub:
     blocks_to_write := (image_size + block_size - 1) / block_size
 
     protocol.set_spi_parameters flash_size
 
-    encryption := chip.supports_encryption?false:null
+    encryption := null
+    if not stub:
+      encryption = chip.supports_encryption?false:null
 
-    retry_ 5:
-      protocol.begin_flash offset image_size block_size blocks_to_write encryption
+    protocol.begin_flash offset image_size block_size blocks_to_write encryption
 
   write buf/ByteArray:
     if buf.size > block_size: throw "Invalid buffer. Size ($buf.size) exceeds block size $block_size"
@@ -147,13 +153,19 @@ class ImageFlasher:
       tmp.fill PADDING_PATTERN_
       buf = buf + tmp
 
-    s := sequence++
-
-    retry_ 10:
-      protocol.write_flash buf s
+    protocol.write_flash buf sequence++
 
   end:
+    if stub:
+//      Stub only writes each block to flash after 'ack'ing the receive,
+//      so do a final dummy operation which will not be 'ack'ed
+//      until the last block has actually been written out to flash
+      protocol.read_register CHIP_DETECT_MAGIC_REG_ADDR_
+
+    protocol.calculate_md5 offset image_size
+
     // TODO: Verify hash
+
 
 
 retry_ trials --pause_between_retries_ms=100 [block]:
