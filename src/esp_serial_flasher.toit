@@ -112,7 +112,11 @@ class Target:
     if size_id < 0x12 or size_id > 0x18: throw "UNSUPPORTED FLASH CHIP"
     return 1 << size_id
 
-  start_flash offset/int image_size/int --flash_size/int?=null --block_size/int=(stub?0x4000:0x0400) -> ImageFlasher:
+  start_flash offset/int image_size/int --flash_size/int?=null --max_block_size/int=-1 -> ImageFlasher:
+    block_size/int := (stub?0x4000:0x0400)
+    if max_block_size != -1:
+      block_size = min block_size max_block_size
+
     if not flash_size_:
       if not flash_size:
         flash_size_ = detect_flash_size
