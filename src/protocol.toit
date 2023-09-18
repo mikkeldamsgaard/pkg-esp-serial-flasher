@@ -90,7 +90,7 @@ class Protocol:
 
   /**
    send spi falsh command
-   $tx is a list of unsigned 32 bit values to send
+   $tx_data is a list of unsigned 32 bit values to send
    $tx_size is the number of bits to write
    $rx_size is the number of bits of read
    return the read bits

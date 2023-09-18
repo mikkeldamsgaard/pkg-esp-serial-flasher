@@ -1,5 +1,5 @@
 import gpio show Pin
-import uart 
+import uart
 import slip show *
 import log
 import encoding.hex
@@ -78,10 +78,10 @@ class Flasher:
   detect_chip_ -> ChipConfig:
     magic_value := protocol.read_register CHIP_DETECT_MAGIC_REG_ADDR_
 
-    chip := CHIP_CONFIGS_.filter: | chip/ChipConfig |
-      chip.chip_magic_numbers.contains magic_value
+    CHIP_CONFIGS_.do: | chip/ChipConfig |
+      if chip.chip_magic_numbers.contains magic_value:
+        return chip
 
-    if chip.size: return chip[0]
     throw "Chip with magic number 0x$(%x magic_value) not found in configuration"
 
 
