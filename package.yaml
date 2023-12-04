@@ -1,4 +1,5 @@
 name: esp_serial_flasher
+description: Allows flashing an esp32 over serial
 dependencies:
   packing:
     url: github.com/mikkeldamsgaard/pkg-binary-packing
